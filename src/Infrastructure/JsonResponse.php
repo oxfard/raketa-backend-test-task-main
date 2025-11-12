@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace Raketa\BackendTestTask\Controller;
+namespace Raketa\BackendTestTask\Infrastructure;
 
 use Psr\Http\Message\MessageInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -83,3 +83,4 @@ final class JsonResponse implements ResponseInterface
         // TODO: Implement getReasonPhrase() method.
     }
 }
+
