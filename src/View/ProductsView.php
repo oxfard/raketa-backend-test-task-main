@@ -2,7 +2,7 @@
 
 namespace Raketa\BackendTestTask\View;
 
-use Raketa\BackendTestTask\Repository\Entity\Product;
+use Raketa\BackendTestTask\Domain\Product;
 use Raketa\BackendTestTask\Repository\ProductRepository;
 
 readonly class ProductsView
@@ -18,10 +18,10 @@ readonly class ProductsView
             fn (Product $product) => [
                 'id' => $product->getId(),
                 'uuid' => $product->getUuid(),
-                'category' => $product->getCategory(),
+                'category' => $product->getCategory()->getName(),
                 'description' => $product->getDescription(),
                 'thumbnail' => $product->getThumbnail(),
-                'price' => $product->getPrice(),
+                'price' => (float) $product->getPrice()->toFloat(),
             ],
             $this->productRepository->getByCategory($category)
         );

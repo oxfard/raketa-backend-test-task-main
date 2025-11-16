@@ -4,8 +4,11 @@ declare(strict_types = 1);
 
 namespace Raketa\BackendTestTask\Repository;
 
+use Brick\Math\BigDecimal;
 use Doctrine\DBAL\Connection;
-use Raketa\BackendTestTask\Repository\Entity\Product;
+use Raketa\BackendTestTask\Domain\Category;
+use Raketa\BackendTestTask\Domain\Product;
+use Raketa\BackendTestTask\Domain\Exception\EntityNotFoundException;
 
 class ProductRepository
 {
@@ -18,38 +21,54 @@ class ProductRepository
 
     public function getByUuid(string $uuid): Product
     {
-        $row = $this->connection->fetchOne(
-            "SELECT * FROM products WHERE uuid = " . $uuid,
+        $row = $this->connection->fetchAssociative(
+            "SELECT p.*, c.id as category_id, c.name as category_name, c.description as category_description
+             FROM products p
+             INNER JOIN categories c ON p.category_id = c.id
+             WHERE p.uuid = ?",
+            [$uuid]
         );
 
         if (empty($row)) {
-            throw new Exception('Product not found');
+            throw new EntityNotFoundException('Product not found');
         }
 
-        return $this->make($row);
+        return $this->map($row);
     }
 
-    public function getByCategory(string $category): array
+    public function getByCategory(string $categoryName): array
     {
+        $rows = $this->connection->fetchAllAssociative(
+            "SELECT p.*, c.id as category_id, c.name as category_name, c.description as category_description
+             FROM products p
+             INNER JOIN categories c ON p.category_id = c.id
+             WHERE p.is_active = 1 AND c.name = ?",
+            [$categoryName]
+        );
+
         return array_map(
-            static fn (array $row): Product => $this->make($row),
-            $this->connection->fetchAllAssociative(
-                "SELECT id FROM products WHERE is_active = 1 AND category = " . $category,
-            )
+            fn (array $row): Product => $this->map($row),
+            $rows
         );
     }
 
-    public function make(array $row): Product
+    private function map(array $row): Product
     {
+        $category = new Category(
+            (int) $row['category_id'],
+            $row['category_name'],
+            $row['category_description'] ?? null
+        );
+
         return new Product(
-            $row['id'],
+            (int) $row['id'],
             $row['uuid'],
-            $row['is_active'],
-            $row['category'],
+            (bool) $row['is_active'],
+            $category,
             $row['name'],
-            $row['description'],
-            $row['thumbnail'],
-            $row['price'],
+            $row['description'] ?? '',
+            $row['thumbnail'] ?? '',
+            BigDecimal::of($row['price']),
         );
     }
 }
